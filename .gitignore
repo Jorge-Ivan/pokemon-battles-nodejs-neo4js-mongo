@@ -1,0 +1,9 @@
+# Dependencias npm
+/node_modules
+
+# Archivos de configuración
+.env
+
+# Archivos generados en tiempo de ejecución
+/build
+/dist
