@@ -12,12 +12,14 @@
   "author": "Jorge Carrillo",
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mongodb": "^6.3.0",
     "neo4j-driver": "^5.15.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "nodemon": "^3.0.1",
     "ts-node": "^10.9.1"

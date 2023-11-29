@@ -1,5 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
+
 import pokemonController from './src/pokemonController';
 import Battle from './src/models/battle';
 import battleController from './src/battleController';
@@ -8,6 +10,7 @@ const app = express();
 const PORT = 3000;
 dotenv.config();
 
+app.use(cors());
 app.use(express.json());
 
 app.get('/pokemon', async (req, res) => {
@@ -31,7 +34,7 @@ app.post('/pokemon', async (req, res) => {
   try {
     const { query, limit = 10, offset = -1 } = req.body;
     
-    if (typeof query === 'string' || (typeof query === 'object' && (query.name || query.description || query.specie))) {
+    if (typeof query === 'string' || (typeof query === 'object')) {
       const pokemonList = await pokemonController.queryPokemon(query, limit, offset);
       res.json(pokemonList);
     } else {
