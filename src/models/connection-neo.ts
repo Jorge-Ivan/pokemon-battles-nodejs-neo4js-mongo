@@ -23,9 +23,10 @@ const ConnectionNeo = {
             driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
             const session = driver.session({ database: 'neo4j', defaultAccessMode: neo4j.session.READ });
             const queryNeo = `MATCH (p:Pokemon)-[:Is]->(s:Specie)
-            RETURN p, s.name as species ${((offset!=-1)?`SKIP ${offset}`:'')} ${((limit!=-1)?`LIMIT ${limit}`:'')}`;
+            MATCH (p)-[:Has *]->(t:Type)
+            RETURN p, s.name as species, COLLECT(t.name) AS types ${((offset!=-1)?`SKIP ${offset}`:'')} ${((limit!=-1)?`LIMIT ${limit}`:'')}`;
             const result = await session.run(queryNeo);
-            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species')} as any) };});
+            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species')} as any), ...({'types':record.get('types')} as any) };});
             await session.close();
             return pokemons;
         } catch (err) {
@@ -45,25 +46,39 @@ const ConnectionNeo = {
             const USER = process.env.NEO_USER || '';
             const PASSWORD = process.env.NEO_PASSWORD || '';
 
-            driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
-            const session = driver.session({ database: 'neo4j', defaultAccessMode: neo4j.session.READ });
-            const queryNeo = `MATCH (p:Pokemon)-[:Is]->(s:Specie)
-            WHERE p.name CONTAINS $name OR p.description CONTAINS $description OR s.name CONTAINS $species
-            RETURN p, s.name as species ${((offset!=-1)?`SKIP ${offset}`:'')} ${((limit!=-1)?`LIMIT ${limit}`:'')}`;
             let queryParams: { [key: string]: any } = {};
             if (typeof query === 'object') {
-                if (query.name) queryParams.name = query.name;
-                if (query.description) queryParams.description = query.description;
-                if (query.species) queryParams.specie = query.species;
+                queryParams.name = query.name || '';
+                queryParams.description = query.description || '';
+                queryParams.species = query.species || '';
+                if (query.types) 
+                {
+                    queryParams.types = '"'+query.types.join('","')+'"';
+                }else{
+                    queryParams.types = '';
+                }
             } else if (typeof query === 'string') {
                 queryParams.name = query;
                 queryParams.description = query;
                 queryParams.species = query;
+                queryParams.types = query;
             } else {
                 throw new Error('Invalid query type');
             }
-            const result = await session.run(queryNeo, queryParams);
-            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species')} as any) };});
+
+            driver = neo4j.driver(URI, neo4j.auth.basic(USER, PASSWORD));
+            const session = driver.session({ database: 'neo4j', defaultAccessMode: neo4j.session.READ });
+            const queryNeo = `MATCH (p:Pokemon)-[:Is]->(s:Specie)
+            MATCH (p)-[:Has *]->(t:Type)
+            WHERE 
+              ${(queryParams.name.length>0)?'p.name CONTAINS "'+queryParams.name+'" ':'false'} OR
+              ${(queryParams.description.length>0)?'p.description CONTAINS "'+queryParams.description+'" ':'false'} OR
+              ${(queryParams.species.length>0)?'s.name CONTAINS "'+queryParams.species+'" ':'false'} OR
+              ${(queryParams.types.length>0)?'t.name IN ['+queryParams.types+']':'false'} 
+            RETURN p, s.name AS species, COLLECT(t.name) AS types ${((offset!=-1)?`SKIP ${offset}`:'')} ${((limit!=-1)?`LIMIT ${limit}`:'')}`;
+            console.log(queryParams)
+            const result = await session.run(queryNeo);
+            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species')} as any), ...({'types':record.get('types')} as any) };});
             await session.close();
             return pokemons;
         } catch (err) {
@@ -88,10 +103,11 @@ const ConnectionNeo = {
             const queryNeo = `MATCH (pquery:Pokemon)
             WHERE pquery.id = $pid
             MATCH path=(pquery)-[:Evolution_Next *]->(p)-[:Is]->(s:Specie)
-            RETURN p,s.name as species`;
+            MATCH (p)-[:Has *]->(t:Type)
+            RETURN p,s.name as species, COLLECT(t.name) AS types`;
 
             const result = await session.run(queryNeo, {pid:pid});
-            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species')} as any) };});
+            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p').properties as any), ...({'species':record.get('species'), ...({'types':record.get('types')} as any)} as any) };});
             await session.close();
             return pokemons;
         } catch (err) {
@@ -148,13 +164,14 @@ const ConnectionNeo = {
                 queryParams = pid.toString();
             }
             const queryNeo = `MATCH (p1:Pokemon where p1.id in [${queryParams}])-[h1:Has]->(t1:Type)<-[e:Effective]-(t2:Type)<-[h2:Has]-(p2:Pokemon)-[:Is]->(s:Specie)
+            MATCH (p2)-[:Has *]->(t:Type)
             WHERE p2 <> p1 and NOT (p1)-[:Effective *]->(p2)
-            RETURN p2, s.name as species 
+            RETURN p2, s.name as species, COLLECT(t.name) AS types
             ORDER BY RAND()
             limit 1
             `;
             const result = await session.run(queryNeo);
-            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p2').properties as any), ...({'species':record.get('species')} as any) };});
+            const pokemons: Pokemon[] = result.records.map((record) => {return { ...(record.get('p2').properties as any), ...({'species':record.get('species')} as any), ...({'types':record.get('types')} as any) };});
             await session.close();
             return pokemons[0];
         } catch (err) {
