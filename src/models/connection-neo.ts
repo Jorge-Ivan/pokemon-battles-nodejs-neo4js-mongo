@@ -61,7 +61,7 @@ const ConnectionNeo = {
                 queryParams.name = query;
                 queryParams.description = query;
                 queryParams.species = query;
-                queryParams.types = query;
+                queryParams.types = '"'+query+'"';
             } else {
                 throw new Error('Invalid query type');
             }
