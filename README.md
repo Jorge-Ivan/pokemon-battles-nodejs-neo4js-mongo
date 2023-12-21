@@ -198,7 +198,7 @@ Estos pasos te permitirán ejecutar la aplicación y acceder a sus diferentes fu
 
 © 2023 Jorge Ivan Carrillo
 
-Este proyecto está bajo la licencia [MIT](link a la licencia). Puedes usar, modificar y distribuir este software de acuerdo con los términos de la licencia.
+Este proyecto está bajo la licencia [MIT](https://opensource.org/licenses/MIT). Puedes usar, modificar y distribuir este software de acuerdo con los términos de la licencia.
 
 Autor: [Jorge Ivan Carrillo](https://linkedin.com/in/jorgecarrillog/)
 
